@@ -15,10 +15,16 @@ repos:
     - --autofix
   - id: trailing-whitespace
 
-- repo: git://github.com/dnephin/pre-commit-golang
-  rev: v0.3.5
+- repo: https://github.com/Bahjat/pre-commit-golang
+  rev: v1.0.3
   hooks:
-  - id: go-fmt
+  - id: go-fmt-import
+  - id: go-vet
+  - id: go-lint
+  - id: go-unit-tests
+  - id: go-err-check # requires github.com/kisielk/errcheck
+  - id: golangci-lint # requires github.com/golangci/golangci-lint
+
 
 - repo: local
   hooks:
