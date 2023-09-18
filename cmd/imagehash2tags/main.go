@@ -29,7 +29,7 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "hash2tags",
+	Use:   "imagehash2tags [image reference with hash]",
 	Short: "Lookup docker repo tags for a specific image hash.",
 	Long:  `Lookup docker repo tags for a specific image hash.`,
 	Args:  cobra.ExactArgs(1),
