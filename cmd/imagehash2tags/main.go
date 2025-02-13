@@ -45,14 +45,11 @@ var rootCmd = &cobra.Command{
 		fmt.Printf("Image: `%s@%s`.\n", repo, hash)
 		fmt.Println("Looking up tags...")
 
-		tags, err := registry.FindTagsForImageHash(ctx, repo, hash)
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("Found these tags matching hash `%s`:\n", hash)
-		for _, tag := range tags {
-			fmt.Printf("%s\n", tag)
+		for tag, err := range registry.FindTagsForImageHash(ctx, repo, hash) {
+			if err != nil {
+				return err
+			}
+			fmt.Printf("found: %s", tag)
 		}
 
 		return nil
