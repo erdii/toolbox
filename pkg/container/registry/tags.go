@@ -18,43 +18,45 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package registry
 
 import (
+	"context"
 	"fmt"
+	"iter"
 	"strings"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
-
-	"context"
 )
 
 // FindTagsForImageHash queries all tags in a repo and compares their manifest hashes against the given hash. Uses standard docker authentication (ie ~/.docker/config.json).
-func FindTagsForImageHash(ctx context.Context, image, hash string) ([]string, error) {
-	matchingTags := []string{}
+func FindTagsForImageHash(ctx context.Context, image, hash string) iter.Seq2[string, error] {
+	return func(yield func(string, error) bool) {
+		withDefaultKeychainAuth := remote.WithAuthFromKeychain(authn.DefaultKeychain)
 
-	withDefaultKeychainAuth := remote.WithAuthFromKeychain(authn.DefaultKeychain)
-
-	repo, err := name.NewRepository(image)
-	if err != nil {
-		return nil, err
-	}
-
-	tags, err := listTags(ctx, repo, withDefaultKeychainAuth)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, tag := range tags {
-		manifestHash, err := getManifestHash(ctx, fmt.Sprintf("%s:%s", image, tag), withDefaultKeychainAuth)
+		repo, err := name.NewRepository(image)
 		if err != nil {
-			return nil, err
+			yield("", err)
+			return
 		}
-		if strings.HasPrefix(manifestHash, hash) {
-			matchingTags = append(matchingTags, tag)
+
+		for tag, err := range listTags(ctx, repo, withDefaultKeychainAuth) {
+			if err != nil {
+				yield("", err)
+				return
+			}
+
+			manifestHash, err := getManifestHash(ctx, fmt.Sprintf("%s:%s", image, tag), withDefaultKeychainAuth)
+			if err != nil {
+				yield("", err)
+				return
+			}
+			if strings.HasPrefix(manifestHash, hash) {
+				if !yield(tag, nil) {
+					return
+				}
+			}
 		}
 	}
-
-	return matchingTags, nil
 }
 
 // Fetch manifest for image `reference`. Reference must be an image ref with a tag or hash.
@@ -64,7 +66,9 @@ func getManifestHash(ctx context.Context, reference string, remoteOpts ...remote
 		return "", nil
 	}
 
-	desc, err := remote.Get(ref, remoteOpts...)
+	opts := append([]remote.Option{remote.WithContext(ctx)}, remoteOpts...)
+
+	desc, err := remote.Get(ref, opts...)
 	if err != nil {
 		return "", nil
 	}
@@ -73,26 +77,31 @@ func getManifestHash(ctx context.Context, reference string, remoteOpts ...remote
 }
 
 // Fetch and list all tags in the `image` repository.
-func listTags(ctx context.Context, repo name.Repository, remoteOpts ...remote.Option) ([]string, error) {
-	tagNames := []string{}
-
-	puller, err := remote.NewPuller(remoteOpts...)
-	if err != nil {
-		return nil, err
-	}
-
-	lister, err := puller.Lister(ctx, repo)
-	if err != nil {
-		return nil, fmt.Errorf("reading tags for %s: %w", repo, err)
-	}
-
-	for lister.HasNext() {
-		tags, err := lister.Next(ctx)
+func listTags(ctx context.Context, repo name.Repository, remoteOpts ...remote.Option) iter.Seq2[string, error] {
+	return func(yield func(string, error) bool) {
+		puller, err := remote.NewPuller(remoteOpts...)
 		if err != nil {
-			return nil, err
+			yield("", err)
+			return
 		}
-		tagNames = append(tagNames, tags.Tags...)
-	}
 
-	return tagNames, nil
+		lister, err := puller.Lister(ctx, repo)
+		if err != nil {
+			yield("", fmt.Errorf("reading tags for %s: %w", repo, err))
+			return
+		}
+
+		for lister.HasNext() {
+			tags, err := lister.Next(ctx)
+			if err != nil {
+				yield("", err)
+				return
+			}
+			for _, tag := range tags.Tags {
+				if !yield(tag, nil) {
+					return
+				}
+			}
+		}
+	}
 }
