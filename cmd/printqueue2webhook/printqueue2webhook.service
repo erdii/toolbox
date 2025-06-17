@@ -1,0 +1,14 @@
+# /etc/systemd/system/printqueue2webhook.service
+[Unit]
+Description=A printqueue watcher that reports print queues leaving/goingto empty state.
+After=network.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+ExecStart=/usr/local/bin/printqueue2webhook -sleep-duration 10 -timeout 600
+# Put WEBHOOK=<webhook address there>:
+EnvironmentFile=/etc/default/printqueue2webhook
+
+[Install]
+WantedBy=multi-user.target

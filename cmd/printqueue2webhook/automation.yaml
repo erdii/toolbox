@@ -1,0 +1,24 @@
+alias: "Webhook: Printer"
+description: ""
+triggers:
+  - trigger: webhook
+    allowed_methods:
+      - POST
+    local_only: false
+    webhook_id: "<secret webhook id>"
+conditions: []
+actions:
+  - if:
+      - condition: template
+        value_template: "{{ dict(trigger.query).length == \"0\" }}"
+    then:
+      - type: turn_off
+        device_id: <device id of esphome switch>
+        entity_id: <entity id of switch>
+        domain: switch
+    else:
+      - type: turn_on
+        device_id: <device id of esphome switch>
+        entity_id: <entity id of switch>
+        domain: switch
+mode: single
