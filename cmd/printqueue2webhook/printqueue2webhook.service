@@ -9,6 +9,8 @@ DynamicUser=yes
 ExecStart=/usr/local/bin/printqueue2webhook -sleep-duration 10 -timeout 600
 # Put WEBHOOK=<webhook address there>:
 EnvironmentFile=/etc/default/printqueue2webhook
+Restart=on-failure
+RestartSec=1s
 
 [Install]
 WantedBy=multi-user.target
