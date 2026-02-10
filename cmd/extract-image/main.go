@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/erdii/toolbox/pkg/image"
+	"github.com/erdii/toolbox/pkg/container/image"
 )
 
 func main() {
