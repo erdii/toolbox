@@ -49,7 +49,7 @@ var rootCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			fmt.Printf("found: %s", tag)
+			fmt.Printf("found: %s\n", tag)
 		}
 
 		return nil
